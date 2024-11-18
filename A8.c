@@ -75,12 +75,16 @@ void shortest_path(Vertex *graph, int V, int N, int start, int end) {
     PriorityQueue pq;
     init_priority_queue(&pq, V * N);
 
-    int distances[MAX_VERTICES][N];
-    int prev[MAX_VERTICES];
+    int **distances = (int **)malloc(V * sizeof(int *));
     for (int i = 0; i < V; i++) {
+        distances[i] = (int *)malloc(N * sizeof(int));
         for (int j = 0; j < N; j++) {
             distances[i][j] = INF;
         }
+    }
+
+    int *prev = (int *)malloc(V * sizeof(int));
+    for (int i = 0; i < V; i++) {
         prev[i] = -1;
     }
 
@@ -111,9 +115,8 @@ void shortest_path(Vertex *graph, int V, int N, int start, int end) {
         }
     }
 
-    // Backtrack to find the path
     if (distances[end][0] == INF) {
-        printf("No path found.\n");
+        printf("No path found from %d to %d.\n", start, end);
     } else {
         int path[MAX_VERTICES];
         int count = 0;
@@ -126,23 +129,28 @@ void shortest_path(Vertex *graph, int V, int N, int start, int end) {
         printf("\n");
     }
 
+    for (int i = 0; i < V; i++) {
+        free(distances[i]);
+    }
+    free(distances);
+    free(prev);
     free(pq.nodes);
 }
 
 int main(int argc, char *argv[]) {
-    if (argc < 2) {
-        printf("Usage: %s <graph_file>\n", argv[0]);
+    if (argc < 3) {
+        printf("Usage: %s <graph_file> <queries_file>\n", argv[0]);
         return 1;
     }
 
-    FILE *file = fopen(argv[1], "r");
-    if (!file) {
-        perror("Error opening file");
+    FILE *graph_file = fopen(argv[1], "r");
+    if (!graph_file) {
+        perror("Error opening graph file");
         return 1;
     }
 
     int V, N;
-    fscanf(file, "%d %d", &V, &N);
+    fscanf(graph_file, "%d %d", &V, &N);
 
     Vertex graph[MAX_VERTICES];
     for (int i = 0; i < V; i++) {
@@ -152,18 +160,24 @@ int main(int argc, char *argv[]) {
 
     int src, dest;
     int weights[MAX_VERTICES];
-    while (fscanf(file, "%d %d", &src, &dest) == 2) {
+    while (fscanf(graph_file, "%d %d", &src, &dest) == 2) {
         for (int i = 0; i < N; i++) {
-            fscanf(file, "%d", &weights[i]);
+            fscanf(graph_file, "%d", &weights[i]);
         }
         add_edge(graph, src, dest, weights, N);
     }
-    fclose(file);
+    fclose(graph_file);
 
-    printf("Enter queries (start end), one per line. Ctrl+D to end:\n");
-    while (scanf("%d %d", &src, &dest) == 2) {
+    FILE *queries_file = fopen(argv[2], "r");
+    if (!queries_file) {
+        perror("Error opening queries file");
+        return 1;
+    }
+
+    while (fscanf(queries_file, "%d %d", &src, &dest) == 2) {
         shortest_path(graph, V, N, src, dest);
     }
+    fclose(queries_file);
 
     for (int i = 0; i < V; i++) {
         for (int j = 0; j < graph[i].edge_count; j++) {
@@ -175,4 +189,3 @@ int main(int argc, char *argv[]) {
 
     return 0;
 }
-
