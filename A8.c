@@ -1,13 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <limits.h>
+#include <stdbool.h>
 
-#define MAX_VERTICES 1000
 #define INF INT_MAX
 
 typedef struct {
     int target;
-    int *weights;
+    int *weights; // Periodic weights
 } Edge;
 
 typedef struct {
@@ -24,11 +24,13 @@ typedef struct {
 typedef struct {
     Node *nodes;
     int size;
+    int capacity;
 } PriorityQueue;
 
-void init_priority_queue(PriorityQueue *pq, int max_size) {
-    pq->nodes = (Node *)malloc(max_size * sizeof(Node));
+void init_priority_queue(PriorityQueue *pq, int capacity) {
+    pq->nodes = (Node *)malloc(capacity * sizeof(Node));
     pq->size = 0;
+    pq->capacity = capacity;
 }
 
 void push(PriorityQueue *pq, Node node) {
@@ -57,7 +59,7 @@ Node pop(PriorityQueue *pq) {
     return root;
 }
 
-int is_empty(PriorityQueue *pq) {
+bool is_empty(PriorityQueue *pq) {
     return pq->size == 0;
 }
 
@@ -116,9 +118,11 @@ void shortest_path(Vertex *graph, int V, int N, int start, int end) {
     }
 
     if (distances[end][0] == INF) {
-        printf("No path found from %d to %d.\n", start, end);
+        printf("%d %d\n", start, end);
+        printf("No path found.\n");
     } else {
-        int path[MAX_VERTICES];
+        printf("%d %d\n", start, end);
+        int *path = (int *)malloc(V * sizeof(int));  // Dynamically allocate memory for the path
         int count = 0;
         for (int v = end; v != -1; v = prev[v]) {
             path[count++] = v;
@@ -127,6 +131,7 @@ void shortest_path(Vertex *graph, int V, int N, int start, int end) {
             printf("%d ", path[i]);
         }
         printf("\n");
+        free(path);  // Free dynamically allocated memory
     }
 
     for (int i = 0; i < V; i++) {
@@ -137,29 +142,30 @@ void shortest_path(Vertex *graph, int V, int N, int start, int end) {
     free(pq.nodes);
 }
 
+
 int main(int argc, char *argv[]) {
     if (argc < 3) {
-        printf("Usage: %s <graph_file> <queries_file>\n", argv[0]);
-        return 1;
+        fprintf(stderr, "Usage: %s <graph_file> <queries_file>\n", argv[0]);
+        return EXIT_FAILURE;
     }
 
     FILE *graph_file = fopen(argv[1], "r");
     if (!graph_file) {
         perror("Error opening graph file");
-        return 1;
+        return EXIT_FAILURE;
     }
 
     int V, N;
     fscanf(graph_file, "%d %d", &V, &N);
 
-    Vertex graph[MAX_VERTICES];
+    Vertex *graph = (Vertex *)malloc(V * sizeof(Vertex));
     for (int i = 0; i < V; i++) {
         graph[i].edges = (Edge **)malloc(V * sizeof(Edge *));
         graph[i].edge_count = 0;
     }
 
     int src, dest;
-    int weights[MAX_VERTICES];
+    int *weights = (int *)malloc(N * sizeof(int));
     while (fscanf(graph_file, "%d %d", &src, &dest) == 2) {
         for (int i = 0; i < N; i++) {
             fscanf(graph_file, "%d", &weights[i]);
@@ -171,7 +177,7 @@ int main(int argc, char *argv[]) {
     FILE *queries_file = fopen(argv[2], "r");
     if (!queries_file) {
         perror("Error opening queries file");
-        return 1;
+        return EXIT_FAILURE;
     }
 
     while (fscanf(queries_file, "%d %d", &src, &dest) == 2) {
@@ -186,6 +192,8 @@ int main(int argc, char *argv[]) {
         }
         free(graph[i].edges);
     }
+    free(graph);
+    free(weights);
 
-    return 0;
+    return EXIT_SUCCESS;
 }
